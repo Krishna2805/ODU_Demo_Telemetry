@@ -1,0 +1,25 @@
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment configurations
+.env
+.env.local
+.env.*.local
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Streamlit configuration
+.streamlit/
+
+# Local operator action logs (not for VCS)
+operator_overrides.json
+
+# Ignore all markdown files except the systems engineering final report
+*.md
+!final_report.md
