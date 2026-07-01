@@ -34,9 +34,7 @@ def run_tests():
     if df_full is None:
         print('  [WARN] telemetry_dataset.csv not found — trend tests will skip lookback')
 
-    # ------------------------------------------------------------------
     # Test 1: Scenario A — clean nominal pass
-    # ------------------------------------------------------------------
     print('\n--- Test 1: Scenario A (Clean Nominal) ---')
     t1_tel = {
         'sat_id': 'SAT-1001', 'pass_num': 3, 'pass_id': 'PASS-1003',
@@ -61,9 +59,7 @@ def run_tests():
     assert r1.confidence >= min_expected_conf
     print('  ✓ PASS')
 
-    # ------------------------------------------------------------------
     # Test 2: Scenario C — hard limit breach → CRITICAL floor
-    # ------------------------------------------------------------------
     print('\n--- Test 2: Scenario C (Hard Limit Breach) ---')
     t2_tel = {
         'sat_id': 'SAT-1003', 'pass_num': 10, 'pass_id': 'PASS-1030',
@@ -85,9 +81,7 @@ def run_tests():
     assert r2.risk_score >= 76
     print('  ✓ PASS')
 
-    # ------------------------------------------------------------------
     # Test 3: Alarmed note + all-green telemetry
-    # ------------------------------------------------------------------
     print('\n--- Test 3: Alarmed Note + Green Telemetry (LLM cannot override rules) ---')
     t3_tel = {
         'sat_id': 'SAT-9999', 'pass_num': 1, 'pass_id': 'PASS-TEST',
@@ -106,9 +100,7 @@ def run_tests():
     assert not r3.rule_result.any_hard_limit_breached
     print('  ✓ PASS: All-green telemetry stays NOMINAL/MONITOR regardless of note')
 
-    # ------------------------------------------------------------------
     # Test 4: Yellow cap — 3× EPS yellows
-    # ------------------------------------------------------------------
     print('\n--- Test 4: Yellow Cap (3× EPS yellows = 45 uncapped → 40 capped) ---')
     t4_tel = {
         'sat_id': 'SAT-9998', 'pass_num': 1, 'pass_id': 'PASS-YCAP',
@@ -129,9 +121,7 @@ def run_tests():
     assert r4.calculated_severity != 'CRITICAL'
     print('  ✓ PASS: Yellow cap enforced')
 
-    # ------------------------------------------------------------------
     # Test 5: Confidence penalties — BER above threshold
-    # ------------------------------------------------------------------
     print('\n--- Test 5: BER Hard Breach → Confidence drops ---')
     t5_tel = {
         'sat_id': 'SAT-9997', 'pass_num': 1, 'pass_id': 'PASS-BER',
@@ -152,9 +142,7 @@ def run_tests():
     assert r5.confidence <= 70
     print('  ✓ PASS: BER penalty applied correctly')
 
-    # ------------------------------------------------------------------
     # Test 6: Scenario D — multi-yellow uncertainty
-    # ------------------------------------------------------------------
     print('\n--- Test 6: Scenario D (Multi-Yellow Uncertainty) ---')
     t6_tel = {
         'sat_id': 'SAT-1002', 'pass_num': 5, 'pass_id': 'PASS-1015',
@@ -175,9 +163,7 @@ def run_tests():
     assert not r6.rule_result.any_hard_limit_breached
     print('  ✓ PASS')
 
-    # ------------------------------------------------------------------
     # Test 7: Confidence floor
-    # ------------------------------------------------------------------
     print('\n--- Test 7: Confidence Floor (maximum penalty scenario) ---')
     t7_tel = {
         'sat_id': 'SAT-9996', 'pass_num': 1, 'pass_id': 'PASS-FLOOR',
@@ -194,9 +180,7 @@ def run_tests():
     assert r7.confidence >= CONFIDENCE_FLOOR
     print('  ✓ PASS: Confidence floor enforced')
 
-    # ------------------------------------------------------------------
     # Test 8: Scenario B — eclipse battery stress with trend lookback
-    # ------------------------------------------------------------------
     print('\n--- Test 8: Scenario B (Eclipse Stress + Trend from dataset) ---')
     if df_full is not None:
         t8_tel = {
@@ -219,9 +203,7 @@ def run_tests():
     else:
         print('  [SKIP] No dataset available for trend lookback')
 
-    # ------------------------------------------------------------------
     # Test 9: Operator override log
-    # ------------------------------------------------------------------
     print('\n--- Test 9: Operator Override Does NOT Overwrite Calculated Severity ---')
     r9 = assess_pass(t2_tel, 'Voltage below 22V on entry, flagged for review immediately.', df=None)
     original_sev = r9.calculated_severity

@@ -1,8 +1,5 @@
 """
-llm_analysis.py — Gemini LLM Analysis Module
-=============================================
-Communicates with the Gemini API to extract operator note structured data (Job 1)
-and generate narrative prose explaining overall pass health (Job 2).
+Gemini API wrappers for note classification and narrative generation.
 """
 
 import concurrent.futures
@@ -51,7 +48,7 @@ if _API_KEY:
 
 @dataclass
 class NoteAnalysisResult:
-    """Output of Job 1 (note analysis)."""
+    """Operator note analysis results."""
     concerns: list = field(default_factory=list)
     tone: str = "uncertain"
     subsystems_mentioned: list = field(default_factory=list)
@@ -62,13 +59,13 @@ class NoteAnalysisResult:
 
 @dataclass
 class ReasoningResult:
-    """Output of Job 2 (reasoning narrative)."""
+    """Generated reasoning explanation."""
     narrative: str = ""
     llm_available: bool = True
 
 
 def _fallback_note_analysis(reason: str = "") -> NoteAnalysisResult:
-    """Return a safe fallback NoteAnalysisResult for any error condition."""
+    """Fallback values if note analysis fails."""
     return NoteAnalysisResult(
         concerns=[],
         tone="uncertain",
@@ -80,7 +77,7 @@ def _fallback_note_analysis(reason: str = "") -> NoteAnalysisResult:
 
 
 def _fallback_reasoning(reason: str = "") -> ReasoningResult:
-    """Return a safe fallback ReasoningResult for any error condition."""
+    """Fallback values if reasoning generation fails."""
     return ReasoningResult(
         narrative="LLM analysis unavailable. The rule engine and trend detector results above are deterministic and reliable.",
         llm_available=False,
@@ -88,7 +85,7 @@ def _fallback_reasoning(reason: str = "") -> ReasoningResult:
 
 
 def _strip_fences(text: str) -> str:
-    """Remove markdown code fences if the model includes them despite instructions."""
+    """Strips markdown code fences if returned by the API."""
     text = text.strip()
     if text.startswith("```"):
         lines = text.split("\n")
@@ -99,9 +96,7 @@ def _strip_fences(text: str) -> str:
 
 
 def _run_with_timeout(fn, timeout: float = LLM_TIMEOUT_SECONDS):
-    """
-    Run fn() in a background thread with a hard wall-clock timeout.
-    """
+    """Runs a call with a wall-clock timeout wrapper."""
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = executor.submit(fn)
     try:
@@ -119,9 +114,7 @@ def _run_with_retry(
     attempts: int = _LLM_RETRY_ATTEMPTS,
     delay: float = _LLM_RETRY_DELAY,
 ):
-    """
-    Wrapper around _run_with_timeout that retries on transient server errors.
-    """
+    """Retries the call on transient server exceptions."""
     last_exc = None
     for attempt in range(1, attempts + 1):
         try:
@@ -148,9 +141,7 @@ def _run_with_retry(
     raise RuntimeError("All retry attempts exhausted with no exception recorded.")
 
 
-# =====================================================================
 # JOB 1: NOTE ANALYSIS
-# =====================================================================
 
 _JOB1_SYSTEM_PROMPT = textwrap.dedent("""\
     You are a spacecraft telemetry analyst assistant.
@@ -191,7 +182,7 @@ _JOB1_SYSTEM_PROMPT = textwrap.dedent("""\
 
 
 def _build_job1_user_prompt(telemetry: dict, operator_note: str) -> str:
-    """Build the user-facing portion of the Job 1 prompt."""
+    """Builds the telemetry context string for note analysis."""
     ber = telemetry.get("ber", "N/A")
     ber_str = f"{ber:.2e}" if isinstance(ber, float) else str(ber)
 
@@ -217,9 +208,7 @@ def _build_job1_user_prompt(telemetry: dict, operator_note: str) -> str:
 
 
 def analyse_note(telemetry: dict, operator_note: str) -> NoteAnalysisResult:
-    """
-    Job 1: Call Gemini to analyse the operator note relative to telemetry.
-    """
+    """Analyzes operator notes using the Gemini API."""
     if not _LLM_CONFIGURED:
         return _fallback_note_analysis(
             "LLM not configured -- GEMINI_API_KEY missing or invalid"
@@ -286,9 +275,7 @@ def analyse_note(telemetry: dict, operator_note: str) -> NoteAnalysisResult:
         return _fallback_note_analysis("LLM API call failed")
 
 
-# =====================================================================
 # JOB 2: REASONING NARRATIVE
-# =====================================================================
 
 _JOB2_SYSTEM_PROMPT = textwrap.dedent("""\
     You are a spacecraft operations expert writing a brief assessment for a mission controller.
@@ -311,7 +298,7 @@ def _build_job2_user_prompt(
     note_analysis: NoteAnalysisResult,
     operator_note: str,
 ) -> str:
-    """Build the Job 2 prompt. Kept compact to control cost and latency."""
+    """Builds the context prompt for final narrative generation."""
     hard_summary = (
         "; ".join(
             f"{f.description} (measured {f.display_value()}, limit {f.display_threshold()})"
@@ -385,9 +372,7 @@ def generate_narrative(
     note_analysis: NoteAnalysisResult,
     operator_note: str,
 ) -> ReasoningResult:
-    """
-    Job 2: Call Gemini to generate a plain-English reasoning narrative.
-    """
+    """Generates the health reasoning narrative using the Gemini API."""
     if not _LLM_CONFIGURED:
         return _fallback_reasoning("LLM not configured")
 

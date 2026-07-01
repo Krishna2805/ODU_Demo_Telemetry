@@ -1,8 +1,5 @@
 """
-generate_data.py — Telemetry Dataset Generator
-==============================================
-Procedurally simulates LEO spacecraft telemetry and operator note logs.
-Grounded in physical limits and templates defined in config.py.
+Procedural simulation of satellite telemetry and operator notes.
 """
 
 import os
@@ -27,7 +24,7 @@ np.random.seed(42)
 
 
 def init_sat_state():
-    """Create initial continuity state for a satellite."""
+    """Initializes state variables for a satellite."""
     wheel_sign = 1 if np.random.rand() > 0.5 else -1
     return {
         "wheel_speed": int(np.random.uniform(1100, 1400)) * wheel_sign,
@@ -40,7 +37,7 @@ def init_sat_state():
 
 
 def evolve_background(state):
-    """Evolve background variables with bounded random walk + mean reversion."""
+    """Updates background telemetry parameters with a bounded random walk."""
     state["wheel_speed"] += int(np.random.uniform(-80, 80))
     state["attitude_error"] = max(
         0.05, round(state["attitude_error"] + float(np.random.normal(0, 0.03)), 3)
@@ -63,7 +60,7 @@ def evolve_background(state):
 
 
 def generate_eps(orbital_mode):
-    """Generate EPS telemetry based on orbital mode."""
+    """Simulates EPS parameters based on the orbital phase."""
     if orbital_mode == "sunlight":
         return {
             "solar_current": round(float(np.random.normal(4.5, 0.2)), 2),
@@ -86,7 +83,7 @@ def generate_eps(orbital_mode):
 
 
 def generate_thermal(orbital_mode):
-    """Generate thermal telemetry based on orbital mode."""
+    """Simulates thermal parameters based on the orbital phase."""
     battery_temp = round(float(np.random.normal(22.0, 1.5)), 1)
     obc_temp = round(float(np.random.normal(28.0, 2.0)), 1)
     if orbital_mode == "sunlight":
@@ -99,7 +96,7 @@ def generate_thermal(orbital_mode):
 
 
 def make_orbital_modes(n_passes):
-    """Generate a realistic sequence of orbital modes for n passes."""
+    """Creates a repeating pattern of day, penumbra, and night phases."""
     cycle = [
         "sunlight",
         "sunlight",
@@ -119,7 +116,7 @@ def make_orbital_modes(n_passes):
 
 
 def generate_handcrafted(records, pass_counter):
-    """Generate the 5 original handcrafted satellites with scenarios A–E."""
+    """Generates the handcrafted datasets for satellites 1001 to 1005."""
     satellites = ["SAT-1001", "SAT-1002", "SAT-1003", "SAT-1004", "SAT-1005"]
     passes_per_sat = 10
     t_start = datetime(2026, 6, 30, 0, 0, 0, tzinfo=timezone.utc)
@@ -168,13 +165,13 @@ def generate_handcrafted(records, pass_counter):
 
             scenario_name = "Nominal Operations"
 
-            # --- SAT-1001: STRICTLY NOMINAL ---
+            # SAT-1001: STRICTLY NOMINAL
             if sat_id == "SAT-1001":
                 if pass_num == 3:
                     scenario_name = "Scenario A — Clean Nominal Pass"
                     operator_note = "All nominal, clean pass."
 
-            # --- SAT-1002: COMMS DEGRADATION & BORDERLINE (SCENARIO D) ---
+            # SAT-1002: COMMS DEGRADATION & BORDERLINE (SCENARIO D)
             elif sat_id == "SAT-1002":
                 if pass_num == 5:
                     scenario_name = "Scenario D — Genuine Uncertainty"
@@ -199,7 +196,7 @@ def generate_handcrafted(records, pass_counter):
                     link_margin = 1.2
                     operator_note = "Significant data corruption on download, BER above limits. Persistently poor link margin."
 
-            # --- SAT-1003: VOLTAGE DRIFT (CONSISTENT -0.4V/ORBIT) ---
+            # SAT-1003: VOLTAGE DRIFT (CONSISTENT -0.4V/ORBIT)
             elif sat_id == "SAT-1003":
                 base_voltage = 26.0
                 base_soc = 72.0
@@ -228,7 +225,7 @@ def generate_handcrafted(records, pass_counter):
                     scenario_name = "Scenario C — Hard Limit Breach (Critical)"
                     operator_note = "Voltage below 22V on entry, flagged for review immediately"
 
-            # --- SAT-1004: ECLIPSE STRESS ---
+            # SAT-1004: ECLIPSE STRESS
             elif sat_id == "SAT-1004":
                 if pass_num <= 4:
                     orbital_mode = "sunlight"
@@ -258,7 +255,7 @@ def generate_handcrafted(records, pass_counter):
                     else:
                         scenario_name = "Eclipse Operations"
 
-            # --- SAT-1005: ADCS FRICTION & SCENARIO E ---
+            # SAT-1005: ADCS FRICTION & SCENARIO E
             elif sat_id == "SAT-1005":
                 if pass_num == 3:
                     scenario_name = "Scenario E — Potential Conflict"
@@ -329,7 +326,7 @@ def generate_handcrafted(records, pass_counter):
 
 
 def generate_procedural_satellite(sat_id, records, pass_counter, n_passes=10):
-    """Generate a single procedural satellite with chronological timeline."""
+    """Generates simulated telemetry for an arbitrary satellite."""
     t_start = datetime(2026, 6, 30, 0, 0, 0, tzinfo=timezone.utc)
     modes = make_orbital_modes(n_passes)
     state = init_sat_state()

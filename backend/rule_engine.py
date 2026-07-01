@@ -1,8 +1,5 @@
 """
-rule_engine.py — Deterministic Rule Engine
-==========================================
-Evaluates single-pass telemetry values against caution (yellow)
-and critical (red) limit thresholds defined in config.py.
+Checks single-pass telemetry limits against thresholds.
 """
 
 from dataclasses import dataclass, field
@@ -11,7 +8,7 @@ from backend.config import HARD_LIMITS, YELLOW_LIMITS, YELLOW_WEIGHTS, YELLOW_TO
 
 @dataclass
 class LimitFlag:
-    """Represents a single triggered limit (hard or yellow)."""
+    """Single triggered limit flag."""
     parameter: str
     description: str
     value: float
@@ -36,7 +33,7 @@ class LimitFlag:
 
 @dataclass
 class RuleEngineResult:
-    """The complete output of the rule engine for a single pass."""
+    """Rule engine check outputs."""
     # Hard limit findings
     hard_limit_flags: list = field(default_factory=list)
     any_hard_limit_breached: bool = False
@@ -61,8 +58,7 @@ class RuleEngineResult:
 
 def check_comparison(value: float, limit_def: dict) -> bool:
     """
-    Evaluate whether a value triggers the limit defined in limit_def.
-    Returns True if the limit is triggered.
+    Returns True if value crosses the threshold.
     """
     comp = limit_def['comparison']
     if comp == 'lt':
@@ -78,8 +74,7 @@ def check_comparison(value: float, limit_def: dict) -> bool:
 
 def run_rule_engine(telemetry: dict) -> RuleEngineResult:
     """
-    Main entry point. Accepts a dict of telemetry values for a single pass.
-    Returns a RuleEngineResult with all flags and the severity floor.
+    Runs checks for all hard and yellow limits.
     """
     result = RuleEngineResult()
 
@@ -161,7 +156,7 @@ def run_rule_engine(telemetry: dict) -> RuleEngineResult:
 
 
 def summarise_result(result: RuleEngineResult) -> str:
-    """Human-readable summary of the rule engine outputs."""
+    """Builds a summary string of the checked limits."""
     lines = []
     lines.append(f"Severity Floor  : {result.severity_floor}")
     lines.append(f"Hard Limit Breach: {result.any_hard_limit_breached}")

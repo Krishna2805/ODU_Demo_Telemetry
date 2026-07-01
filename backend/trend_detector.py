@@ -1,8 +1,5 @@
 """
-trend_detector.py — Lightweight Trend Detection Module
-======================================================
-Monitors consecutive historical passes to identify monotonic parameter decay
-using parameters and bounds defined in config.py.
+Trend detection over consecutive passes to flag parameter drift.
 """
 
 from dataclasses import dataclass, field
@@ -12,7 +9,7 @@ from backend.config import TREND_PARAMETERS, MIN_TREND_PASSES
 
 @dataclass
 class TrendFlag:
-    """Represents a detected monotonic trend in a parameter."""
+    """Monotonic parameter trend flag."""
     parameter: str
     label: str
     direction: str           # 'declining' or 'rising'
@@ -24,7 +21,7 @@ class TrendFlag:
     unit: str = ''
 
     def display_summary(self) -> str:
-        """Human-readable one-line summary for the UI."""
+        """One-line summary for layout rendering."""
         direction_word = "declining" if self.direction == 'declining' else "rising"
         vals_str = " → ".join([f"{v:.2f}{self.unit}" for v in self.values])
         return (f"Trend Detected: {self.label} {direction_word} for "
@@ -33,7 +30,7 @@ class TrendFlag:
 
 @dataclass
 class TrendDetectorResult:
-    """Complete output of the trend detector for the current pass."""
+    """Trend detector outputs."""
     trend_flags: list = field(default_factory=list)
     total_risk_pts: int = 0
     total_conf_penalty: int = 0
@@ -50,7 +47,7 @@ def detect_trends(
     min_passes: int = MIN_TREND_PASSES,
 ) -> TrendDetectorResult:
     """
-    Run trend detection for the current pass against the historical dataset.
+    Scans history to detect consecutive increases or decreases.
     """
     result = TrendDetectorResult()
 
@@ -157,7 +154,7 @@ def detect_trends(
 
 
 def summarise_trends(result: TrendDetectorResult) -> str:
-    """Human-readable summary of trend detector outputs."""
+    """Formats trends into a text summary."""
     lines = []
     lines.append("=== Trend Detector Result ===")
     lines.append(f"Passes available for lookback : {result.passes_available}")

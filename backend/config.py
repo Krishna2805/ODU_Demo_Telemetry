@@ -1,13 +1,10 @@
 """
-config.py — Telemetry Health Assessment System Configuration
-===========================================================
-Single source of truth for limit thresholds, weights, constants,
-and note templates across the system.
+Configuration parameters for the telemetry assessment tool.
+Thresholds, weights, and templates are defined here.
 """
 
-# =====================================================================
 # SEVERITY LEVELS & MAPPINGS
-# =====================================================================
+
 SEVERITY_LEVELS = {
     'NOMINAL': 0,
     'MONITOR': 1,
@@ -46,9 +43,8 @@ SEVERITY_BG = {
     'CRITICAL': '#f8514915',  # faint red
 }
 
-# =====================================================================
 # RULE ENGINE LIMIT DEFINITIONS
-# =====================================================================
+
 
 # Hard limits: (parameter, description, threshold, comparison, severity_floor, unit)
 HARD_LIMITS = [
@@ -241,9 +237,7 @@ YELLOW_WEIGHTS = {
 }
 YELLOW_TOTAL_CAP = 40
 
-# =====================================================================
 # TREND DETECTOR CONFIGURATION
-# =====================================================================
 MIN_TREND_PASSES = 3
 
 TREND_PARAMETERS = {
@@ -256,9 +250,7 @@ TREND_PARAMETERS = {
     'cpu_usage':        {'category': 'secondary', 'risk_pts': 5,  'conf_penalty': 5,  'label': 'CPU Usage',                  'unit': '%',    'bad_direction': 'rising'},
 }
 
-# =====================================================================
 # RISK & CONFIDENCE CONSTANTS
-# =====================================================================
 TREND_RISK_WEIGHTS = {
     'critical': 10,
     'secondary': 5,
@@ -267,9 +259,7 @@ TREND_RISK_WEIGHTS = {
 CONFIDENCE_FLOOR = 10
 BASE_CONFIDENCE  = 100
 
-# =====================================================================
 # LLM SERVICE CONFIGURATION
-# =====================================================================
 VALID_TONES = {"alarmed", "cautious", "routine", "uncertain"}
 VALID_RELATIONSHIPS = {"supports", "adds_context", "potential_conflict", "cannot_determine"}
 
@@ -277,9 +267,7 @@ LLM_TIMEOUT_SECONDS = 15
 _LLM_RETRY_ATTEMPTS = 3
 _LLM_RETRY_DELAY = 2.0
 
-# =====================================================================
 # SYNTHETIC DATASET GENERATION CONFIGS & TEMPLATES
-# =====================================================================
 GS_LIST = [
     "GS-GSOC",
     "GS-SVALBARD",

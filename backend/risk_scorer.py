@@ -1,8 +1,5 @@
 """
-risk_scorer.py — Risk Scorer & Pipeline Integrator
-===================================================
-Orchestrates the rule engine, trend detector, and LLM note analyst,
-calculates the integrated risk score and confidence.
+Orchestrates the rules, trends, and LLM checks to compile the final pass health score.
 """
 
 from dataclasses import dataclass, field
@@ -28,14 +25,14 @@ from backend.llm_analysis import (
 
 @dataclass
 class ConfidencePenalty:
-    """A single named penalty contributing to the confidence deduction."""
+    """Named penalty contributing to the confidence deduction."""
     reason: str
     deduction: int     # positive integer representing points deducted
 
 
 @dataclass
 class AssessmentResult:
-    """The complete output for a single pass. Streamlit reads this."""
+    """Pass assessment output structure."""
     # Identifiers
     sat_id: str = ''
     pass_num: int = 0
@@ -66,8 +63,7 @@ class AssessmentResult:
 
     def hard_limit_badge_label(self) -> str:
         """
-        Returns a badge label for hard limit breaches that distinguishes
-        CRITICAL-floor breaches from WARNING-floor breaches.
+        Returns a badge label for hard limit breaches.
         """
         if not self.rule_result or not self.rule_result.any_hard_limit_breached:
             return ''
@@ -83,7 +79,7 @@ def _compute_risk_score(
     trend_result: TrendDetectorResult,
 ) -> int:
     """
-    Compute the raw 0–100 risk score from rule engine and trend flags.
+    Computes raw risk score based on rule checks and trends.
     """
     score = 0
     score += rule_result.yellow_risk_points
@@ -101,7 +97,7 @@ def _compute_risk_score(
 
 
 def _score_to_severity(score: int) -> str:
-    """Map a risk score to a severity label."""
+    """Maps the risk score to nominal, monitor, warning, or critical."""
     for threshold, label in SCORE_THRESHOLDS:
         if score >= threshold:
             return label
@@ -110,7 +106,7 @@ def _score_to_severity(score: int) -> str:
 
 def _apply_severity_floor(computed: str, floor: str) -> str:
     """
-    Ensure computed severity is at least as high as the rule engine floor.
+    Clamps severity to the rule engine floor if it is higher.
     """
     if SEVERITY_LEVELS.get(floor, 0) > SEVERITY_LEVELS.get(computed, 0):
         return floor
@@ -124,12 +120,12 @@ def _compute_confidence(
     telemetry: dict,
 ) -> tuple[float, list]:
     """
-    Compute the deterministic confidence score (0–100%).
+    Calculates confidence by applying deductions for anomalies.
     """
     penalties = []
     total_deduction = 0
 
-    # --- Penalty: BER above warning threshold ---
+    # BER limit penalty
     ber = telemetry.get('ber', 0)
     if ber is not None and ber > 1e-6:
         reason = (
@@ -141,7 +137,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 30
 
-    # --- Penalty: Note-telemetry "potential_conflict" ---
+    # Note contradiction penalty
     if note_analysis.note_telemetry_relationship == 'potential_conflict':
         p = ConfidencePenalty(
             reason='Operator note conflicts with telemetry readings — direction of truth unclear',
@@ -150,7 +146,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 20
 
-    # --- Penalty: LLM fallback (note could not be analysed) ---
+    # LLM unavailable penalty
     if not note_analysis.llm_available:
         p = ConfidencePenalty(
             reason='LLM analysis unavailable — operator note not assessed',
@@ -159,7 +155,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 15
 
-    # --- Penalty: Multi-subsystem borderline (2+ yellow categories) ---
+    # Multiple subsystem caution penalty
     yellow_categories = set(f.weight_category for f in rule_result.yellow_limit_flags)
     if len(yellow_categories) >= 2:
         p = ConfidencePenalty(
@@ -169,7 +165,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 15
 
-    # --- Penalty: Note tone "uncertain" ---
+    # Uncertain operator tone penalty
     if note_analysis.tone == 'uncertain':
         p = ConfidencePenalty(
             reason='Operator note tone is uncertain — operator themselves unsure',
@@ -178,7 +174,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 10
 
-    # --- Penalty: Note "cannot_determine" relationship ---
+    # Vague note penalty
     if note_analysis.note_telemetry_relationship == 'cannot_determine':
         p = ConfidencePenalty(
             reason='Note-telemetry relationship cannot be determined — note too vague to contextualise',
@@ -187,7 +183,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += 5
 
-    # --- Penalty: Each individual yellow limit tripped (-5% each) ---
+    # Yellow flags count penalty
     trend_conf_deduction = trend_result.total_conf_penalty
     n_yellow = len(rule_result.yellow_limit_flags)
     if n_yellow > 0:
@@ -199,7 +195,7 @@ def _compute_confidence(
         penalties.append(p)
         total_deduction += yellow_conf_deduction
 
-    # --- Penalty: Trend flags (from trend detector) ---
+    # Trend flags penalty
     if trend_result.any_trend_detected:
         p = ConfidencePenalty(
             reason=f'Monotonic trend detected ({", ".join(f.label for f in trend_result.trend_flags)}) — parameter direction is worsening',
@@ -219,7 +215,7 @@ def assess_pass(
     min_trend_passes: int = 3,
 ) -> AssessmentResult:
     """
-    Run the full assessment pipeline for a single pass.
+    Main pipeline to check rules, detect trends, parse notes, and score a pass.
     """
     sat_id  = telemetry.get('sat_id', 'UNKNOWN')
     pass_num = telemetry.get('pass_num', 0)
@@ -231,23 +227,23 @@ def assess_pass(
         pass_id=pass_id,
     )
 
-    # STEP 1: Rule Engine
+    # Run limits check
     rule_result = run_rule_engine(telemetry)
     result.rule_result = rule_result
 
-    # STEP 2: Trend Detector
+    # Check for worsening trends
     if df is not None:
         trend_result = detect_trends(telemetry, df, min_passes=min_trend_passes)
     else:
         trend_result = TrendDetectorResult()
     result.trend_result = trend_result
 
-    # STEP 3: LLM Job 1 — Note Analysis
+    # Analyze operator logs
     note_analysis = analyse_note(telemetry, operator_note)
     result.note_analysis = note_analysis
     result.llm_available = note_analysis.llm_available
 
-    # STEP 4: Risk Score + Severity
+    # Calculate severity and source
     risk_score = _compute_risk_score(rule_result, trend_result)
     score_severity = _score_to_severity(risk_score)
     final_severity = _apply_severity_floor(score_severity, rule_result.severity_floor)
@@ -264,14 +260,14 @@ def assess_pass(
     result.calculated_severity = final_severity
     result.severity_source = severity_source
 
-    # STEP 5: Confidence Score
+    # Compute confidence deductions
     confidence, penalties = _compute_confidence(
         rule_result, trend_result, note_analysis, telemetry
     )
     result.confidence = confidence
     result.confidence_penalties = penalties
 
-    # STEP 6: LLM Job 2 — Reasoning Narrative
+    # Generate prose summary
     reasoning = generate_narrative(
         sat_id=sat_id,
         pass_num=pass_num,

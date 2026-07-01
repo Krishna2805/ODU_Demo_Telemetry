@@ -1,8 +1,5 @@
 """
-ui_styles.py — UI Styling & HTML Templates
-==========================================
-Encapsulates all CSS styles and custom HTML badge/card generators
-for the Streamlit dashboard.
+CSS styling and HTML generation helper utilities for the frontend.
 """
 
 import streamlit as st
@@ -11,7 +8,7 @@ from backend.risk_scorer import AssessmentResult
 
 
 def inject_custom_css():
-    """Inject premium CSS overrides into the Streamlit page."""
+    """Injects CSS overrides into the page."""
     st.markdown("""
 <style>
   /* Google Font */
@@ -160,7 +157,7 @@ def inject_custom_css():
 
 
 def get_severity_badge_html(result: AssessmentResult) -> str:
-    """Generate HTML snippet for the severity badge with source label."""
+    """Creates HTML snippet for the severity badge and its source indicator."""
     sev = result.calculated_severity
     col = SEVERITY_COLOURS.get(sev, '#8b949e')
     bg  = SEVERITY_BG.get(sev, '#161b22')
@@ -178,7 +175,7 @@ def get_severity_badge_html(result: AssessmentResult) -> str:
 
 
 def get_relationship_html(rel: str) -> str:
-    """Generate HTML styling wrapper for the note-telemetry relationship."""
+    """Wraps note relationship label in HTML styling classes."""
     label = {
         'supports':          '🟢 Supports telemetry',
         'adds_context':      '🔵 Adds context',
@@ -197,12 +194,12 @@ def get_relationship_html(rel: str) -> str:
 
 
 def get_tone_icon(tone: str) -> str:
-    """Get emoji corresponding to tone."""
+    """Maps tone to a status emoji."""
     return {'alarmed': '🔴', 'cautious': '🟡', 'routine': '🟢', 'uncertain': '⚪'}.get(tone, '⚪')
 
 
 def get_confidence_bar_colour(conf: float) -> str:
-    """Get color for the confidence progress bar."""
+    """Returns hex color corresponding to confidence levels."""
     if conf >= 75:
         return '#3fb950'
     if conf >= 45:
@@ -211,7 +208,7 @@ def get_confidence_bar_colour(conf: float) -> str:
 
 
 def format_value(param: str, v) -> str:
-    """Format numeric telemetry values for clean display."""
+    """Formats engineering values for parameters."""
     if v is None:
         return '—'
     if param == 'ber':
@@ -225,7 +222,7 @@ def format_value(param: str, v) -> str:
 
 
 def get_value_colour_class(value: float, param: str, rule_result) -> str:
-    """Get CSS text class based on whether parameter tripped limits."""
+    """Finds the CSS class matching the rules check results."""
     if not rule_result:
         return 'tel-nominal'
     

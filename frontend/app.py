@@ -1,7 +1,5 @@
 """
-app.py — Streamlit Operator Dashboard
-======================================
-Consumes an AssessmentResult and renders the telemetry health dashboard.
+Streamlit entrypoint for the ground segment health assessment panel.
 """
 
 import os
@@ -11,7 +9,7 @@ import html
 import pandas as pd
 import streamlit as st
 
-# --- Root path patching so backend is importable regardless of launch method ---
+# Root path patching so backend is importable regardless of launch method
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from backend.config import RECOMMENDED_ACTION, DEMO_SCENARIOS, SEVERITY_COLOURS
@@ -38,9 +36,7 @@ st.set_page_config(
 inject_custom_css()
 
 
-# =====================================================================
 # DATA LOADING (cached — runs once per session)
-# =====================================================================
 @st.cache_data(show_spinner="Loading telemetry dataset…")
 def load_dataset(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
@@ -57,9 +53,7 @@ if not os.path.exists(CSV_PATH):
 df_all = load_dataset(CSV_PATH)
 
 
-# =====================================================================
 # SESSION STATE INIT & OVERRIDES JSON
-# =====================================================================
 import json
 
 OVERRIDES_JSON_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'operator_overrides.json')
@@ -92,12 +86,10 @@ if 'auto_run' not in st.session_state:
     st.session_state.auto_run = False
 
 
-# =====================================================================
 # SIDEBAR — Selector Panel
-# =====================================================================
 
 def _quick_select(sid: str, pnum: int):
-    """Set selection state and flag auto-run. Called via on_click."""
+    """Sidebar callback to set selections and trigger assessment."""
     st.session_state.sel_sat = sid
     st.session_state.sel_pass = pnum
     st.session_state.auto_run = True
@@ -117,7 +109,7 @@ with st.sidebar:
             args=(sid, pnum),
         )
 
-    # --- Select a random pass from the entire 500-pass dataset ---
+    # Select a random pass from the entire 500-pass dataset
     def _select_random_pass():
         random_row = df_all.sample(n=1).iloc[0]
         st.session_state.sel_sat = str(random_row['sat_id'])
@@ -201,9 +193,7 @@ with st.sidebar:
     st.caption(f"Dataset: {len(df_all)} passes · {df_all['sat_id'].nunique()} satellites")
 
 
-# =====================================================================
 # RUN PIPELINE INTEGRATION
-# =====================================================================
 if st.session_state.auto_run:
     st.session_state.auto_run = False
     run_assessment = True
@@ -234,12 +224,10 @@ if run_assessment:
 
 result: AssessmentResult = st.session_state.result
 
-# =====================================================================
 # UI RENDERING — LANDING OR DASHBOARD
-# =====================================================================
 
 if result is None:
-    # --- Landing State ---
+    # Landing State
     st.title("🛰️ Spacecraft Telemetry Health Assessment System")
     st.write("")
     
@@ -258,7 +246,7 @@ if result is None:
     """, unsafe_allow_html=True)
     st.stop()
 
-# --- Main Dashboard Header ---
+# Main Dashboard Header
 sat_id = result.sat_id
 pass_num = result.pass_num
 
@@ -281,9 +269,7 @@ with col_hdr_right:
     st.markdown(get_severity_badge_html(result), unsafe_allow_html=True)
 
 
-# =====================================================================
 # SECTION 2: TELEMETRY SUMMARY
-# =====================================================================
 st.markdown('<div class="section-header">Section 2: Telemetry Parameters Summary</div>', unsafe_allow_html=True)
 
 col_t1, col_t2 = st.columns(2)
@@ -349,9 +335,7 @@ st.markdown(
 )
 
 
-# =====================================================================
 # SECTION 3: RULE ENGINE FLAGS
-# =====================================================================
 st.markdown('<div class="section-header">Section 3: Rule Engine Flags</div>', unsafe_allow_html=True)
 
 rr = result.rule_result
@@ -404,9 +388,7 @@ else:
                 st.markdown("🟢 No caution (yellow) limit flags detected.")
 
 
-# =====================================================================
 # SECTION 4: LLM NOTE ANALYSIS (JOB 1)
-# =====================================================================
 st.markdown('<div class="section-header">Section 4: Natural Language Note Analysis</div>', unsafe_allow_html=True)
 
 na = result.note_analysis
@@ -453,9 +435,7 @@ else:
         st.markdown("- *No operational concerns extracted from note.*")
 
 
-# =====================================================================
 # SECTION 5: ASSESSMENT
-# =====================================================================
 st.markdown('<div class="section-header">Section 5: Integrated Health Assessment</div>', unsafe_allow_html=True)
 
 col_a1, col_a2 = st.columns([2, 3])
@@ -491,9 +471,7 @@ with col_a2:
     st.markdown(f"*{action}*")
 
 
-# =====================================================================
 # SECTION 6: CONFIDENCE BREAKDOWN
-# =====================================================================
 st.markdown('<div class="section-header">Section 6: Confidence Score Penalty Breakdown</div>', unsafe_allow_html=True)
 
 if not result.confidence_penalties:
@@ -521,9 +499,7 @@ else:
                 )
 
 
-# =====================================================================
 # SECTION 7: OPERATOR OVERRIDE
-# =====================================================================
 st.markdown('<div class="section-header">Section 7: Human-in-the-Loop Operator Override</div>', unsafe_allow_html=True)
 
 st.write("Operator actions sit alongside the calculated severity. Overrides are logged historically but never overwrite the calculated severity.")

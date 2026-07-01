@@ -22,7 +22,7 @@ def run_tests():
     print("RUNNING LLM ANALYSIS UNIT TESTS")
     print("=" * 60)
 
-    # ---- Test 1: Fallback path (always runs, no API needed) ----
+    # Test 1: Fallback path (always runs, no API needed)
     print("\n--- Test 1: Fallback path (simulate missing API key) ---")
     saved_configured = llm_analysis._LLM_CONFIGURED
     llm_analysis._LLM_CONFIGURED = False
@@ -58,7 +58,7 @@ def run_tests():
         "memory_usage": 48.0,
     }
 
-    # ---- Test 2: Scenario A — routine nominal note ----
+    # Test 2: Scenario A — routine nominal note
     print("\n--- Test 2 (live): Scenario A -- routine nominal note ---")
     r2 = llm_analysis.analyse_note(telemetry_nominal, "All nominal, clean pass.")
     print("  Tone:", r2.tone, "| Relationship:", r2.note_telemetry_relationship)
@@ -71,7 +71,7 @@ def run_tests():
         assert isinstance(r2.concerns, list)
         print("  ✓ PASS: Valid structured JSON returned for routine pass")
 
-    # ---- Test 3: Scenario E — potential conflict ----
+    # Test 3: Scenario E — potential conflict
     print("\n--- Test 3 (live): Scenario E -- potential conflict ---")
     telemetry_e = {**telemetry_nominal, "attitude_error": 0.37, "wheel_speed": -1208}
     r3 = llm_analysis.analyse_note(telemetry_e, "attitude looks wrong to me, wheel speed feels high")
@@ -83,7 +83,7 @@ def run_tests():
         assert r3.note_telemetry_relationship == "potential_conflict"
         print("  ✓ PASS: Scenario E correctly classified as potential_conflict")
 
-    # ---- Test 4: Scenario C — alarmed hard limit breach note ----
+    # Test 4: Scenario C — alarmed hard limit breach note
     print("\n--- Test 4 (live): Scenario C -- alarmed / critical breach ---")
     telemetry_c = {
         **telemetry_nominal,
@@ -101,7 +101,7 @@ def run_tests():
         assert r4.tone in ("alarmed", "cautious")
         print("  ✓ PASS: Scenario C classified with alarmed/cautious tone")
 
-    # ---- Test 5: Scenario D — uncertain multi-yellow ----
+    # Test 5: Scenario D — uncertain multi-yellow
     print("\n--- Test 5 (live): Scenario D -- uncertain, multi-yellow ---")
     telemetry_d = {
         **telemetry_nominal,
@@ -121,7 +121,7 @@ def run_tests():
         assert r5.tone in ("uncertain", "cautious")
         print("  ✓ PASS: Scenario D classified with uncertain/cautious tone")
 
-    # ---- Test 6: JSON parse failure simulation ----
+    # Test 6: JSON parse failure simulation
     print("\n--- Test 6: Simulate JSON parse failure ---")
     class _BadResponse:
         text = "This is not JSON at all, sorry."
@@ -137,7 +137,7 @@ def run_tests():
     print("  ✓ PASS: JSON parse failure returns fallback with llm_available=False")
     llm_analysis._client = saved_client
 
-    # ---- Test 7: Job 2 narrative (live) ----
+    # Test 7: Job 2 narrative (live)
     print("\n--- Test 7 (live): Job 2 -- reasoning narrative for Scenario C ---")
     re_result = run_rule_engine(
         {
