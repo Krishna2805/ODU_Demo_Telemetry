@@ -20,6 +20,7 @@ ENV/
 # Local operator action logs (not for VCS)
 operator_overrides.json
 
-# Ignore all markdown files except the systems engineering final report
+# Ignore all markdown files except the systems engineering final report and README
 *.md
 !final_report.md
+!README.md
